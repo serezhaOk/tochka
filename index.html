@@ -149,18 +149,6 @@
     transition: left 0.35s cubic-bezier(.2,.7,.2,1),
                 width 0.35s cubic-bezier(.2,.7,.2,1);
   }
-
-  .hint {
-    position: fixed;
-    left: 50%;
-    bottom: 28px;
-    transform: translateX(-50%);
-    color: #c4c4c4;
-    font-size: 13px;
-    letter-spacing: .02em;
-    z-index: 50;
-    pointer-events: none;
-  }
 </style>
 </head>
 <body>
@@ -173,8 +161,6 @@
     <button class="toggle__btn" role="tab" aria-selected="true"  data-set="0">Начать своё дело</button>
     <button class="toggle__btn" role="tab" aria-selected="false" data-set="1">Управлять и развивать</button>
   </div>
-
-  <div class="hint">двигай мышкой — осмотри пространство</div>
 
 <script>
 (() => {
@@ -238,8 +224,8 @@
       el.style.setProperty('--x', p.x + 'px');
       el.style.setProperty('--y', p.y + 'px');
       el.style.setProperty('--z', p.z + 'px');
-      el.style.setProperty('--sry', clamp(p.x * 0.032, 30) + 'deg');
-      el.style.setProperty('--srx', clamp(-p.y * 0.034, 22) + 'deg');
+      el.style.setProperty('--sry', clamp(-p.x * 0.032, 30) + 'deg');
+      el.style.setProperty('--srx', clamp(p.y * 0.034, 22) + 'deg');
       el.dataset.depth = p.z;
 
       el.innerHTML =
