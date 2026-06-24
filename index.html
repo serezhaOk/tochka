@@ -7,8 +7,7 @@
 <style>
   :root {
     --bg: #ffffff;
-    --card: #f4f4f4;
-    --card-stroke: #ececec;
+    --card: #ffffff;
     --ink: #181818;
   }
 
@@ -26,7 +25,7 @@
   .stage {
     position: fixed;
     inset: 0;
-    perspective: 1100px;        /* глубина перспективы */
+    perspective: 1200px;
     perspective-origin: 50% 50%;
   }
 
@@ -34,7 +33,7 @@
     position: absolute;
     inset: 0;
     transform-style: preserve-3d;
-    /* наклон сцены вслед за курсором задаётся из JS через CSS-переменные */
+    /* лёгкое качание всей сцены за курсором (камера) */
     transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
     transition: transform 0.25s ease-out;
     will-change: transform;
@@ -45,25 +44,61 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 30px 20px 20px;
+    border-radius: 30px;
     background: var(--card);
-    border: 1px solid var(--card-stroke);
+    box-shadow: 0 18px 50px -20px rgba(20,20,30,.22);
     transform-style: preserve-3d;
-    /* позиция/глубина/параллакс собираются в одном transform из JS-переменных */
+    /*
+      Сборка трансформа:
+      1) позиция в пространстве + параллакс (--px/--py) + глубина (--z)
+      2) сферический доворот вокруг своих осей (--sry/--srx) —
+         тем сильнее, чем дальше карточка от центра экрана
+    */
     transform:
       translate(-50%, -50%)
       translate3d(
         calc(var(--x) + var(--px, 0px)),
         calc(var(--y) + var(--py, 0px)),
         var(--z))
-      rotate(var(--rot, 0deg));
-    transition: transform 0.3s cubic-bezier(.2,.7,.2,1),
-                opacity 0.5s ease,
-                filter 0.5s ease;
+      rotateY(var(--sry, 0deg))
+      rotateX(var(--srx, 0deg));
+    transition: opacity 0.5s ease, filter 0.5s ease;
     will-change: transform, opacity;
   }
 
-  /* Набор, который сейчас скрыт (кросс-фейд) */
+  .card__icon {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card__icon svg {
+    width: 34px;
+    height: 34px;
+    stroke: #fff;
+    stroke-width: 1.8;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .card__text {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.22;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  /* Кросс-фейд между наборами */
   .set--hidden .card {
     opacity: 0;
     filter: blur(4px);
@@ -89,7 +124,6 @@
     background: #fff;
     user-select: none;
   }
-
   .toggle__btn {
     position: relative;
     z-index: 2;
@@ -105,8 +139,6 @@
     transition: color 0.3s ease;
   }
   .toggle__btn[aria-selected="true"] { color: #fff; }
-
-  /* Бегунок-пилюля */
   .toggle__thumb {
     position: absolute;
     z-index: 1;
@@ -123,7 +155,7 @@
     left: 50%;
     bottom: 28px;
     transform: translateX(-50%);
-    color: #bdbdbd;
+    color: #c4c4c4;
     font-size: 13px;
     letter-spacing: .02em;
     z-index: 50;
@@ -133,9 +165,7 @@
 </head>
 <body>
   <div class="stage">
-    <div class="world" id="world">
-      <!-- наборы карточек генерируются из JS -->
-    </div>
+    <div class="world" id="world"></div>
   </div>
 
   <div class="toggle" id="toggle" role="tablist" aria-label="Режим">
@@ -148,59 +178,84 @@
 
 <script>
 (() => {
-  // --- Два набора по 8 карточек -----------------------------------
-  // Каждая карточка: x/y — смещение от центра (px), z — глубина,
-  // w/h — размеры, rot — лёгкий поворот в плоскости.
-  // Параллакс силён для ближних (большой +z), слаб для дальних (-z).
-  const SETS = [
-    [ // Набор 0 — "Начать своё дело"
-      { x:-560, y:-420, z: 120, w:340, h:175, rot:-4 },
-      { x: 380, y:-330, z:-180, w:300, h:150, rot: 3 },
-      { x:-700, y:  60, z: -60, w:280, h:185, rot: 5 },
-      { x: 620, y:-110, z:  60, w:300, h:160, rot:-3 },
-      { x:-260, y: 300, z: 200, w:320, h:170, rot: 2 },
-      { x: 250, y: 330, z:-120, w:300, h:170, rot:-5 },
-      { x: 700, y: 280, z: 100, w:260, h:150, rot: 4 },
-      { x:-470, y:-130, z:-220, w:240, h:140, rot: 6 },
-    ],
-    [ // Набор 1 — "Управлять и развивать"
-      { x:-620, y:-300, z: 180, w:300, h:160, rot: 5 },
-      { x: 300, y:-400, z: -80, w:330, h:175, rot:-4 },
-      { x: 660, y:-200, z: 140, w:270, h:150, rot: 3 },
-      { x:-360, y: 250, z:-200, w:310, h:165, rot:-6 },
-      { x: 200, y: 360, z:  80, w:300, h:170, rot: 4 },
-      { x:-720, y: -40, z:  40, w:250, h:175, rot:-2 },
-      { x: 560, y: 200, z:-140, w:320, h:160, rot: 5 },
-      { x:-180, y:-440, z: 220, w:280, h:150, rot:-3 },
-    ],
+  // --- Иконки (линейные, белые на тёмном круге) -------------------
+  const ICONS = {
+    register: '<svg viewBox="0 0 32 32"><ellipse cx="16" cy="11" rx="5" ry="2.4"/><path d="M11 11v3c0 1.3 2.2 2.4 5 2.4s5-1.1 5-2.4v-3"/><ellipse cx="16" cy="19" rx="8" ry="3.6"/><path d="M8 19v2.5c0 2 3.6 3.6 8 3.6s8-1.6 8-3.6V19"/></svg>',
+    salary:   '<svg viewBox="0 0 32 32"><ellipse cx="16" cy="11" rx="9" ry="4"/><path d="M7 11v5c0 2.2 4 4 9 4s9-1.8 9-4v-5"/><path d="M7 15.5c0 2.2 4 4 9 4s9-1.8 9-4"/></svg>',
+    taxes:    '<svg viewBox="0 0 32 32"><path d="M10 5h12v22l-3-2-3 2-3-2-3 2z"/><path d="M13.5 11h5M13.5 15h5M13.5 19h5"/></svg>',
+    account:  '<svg viewBox="0 0 32 32"><ellipse cx="13" cy="16" rx="5" ry="8.5"/><ellipse cx="19" cy="16" rx="5" ry="8.5"/></svg>',
+    clients:  '<svg viewBox="0 0 32 32"><path d="M16 5a7 7 0 0 1 7 7c0 5.2-7 14-7 14s-7-8.8-7-14a7 7 0 0 1 7-7z"/><circle cx="16" cy="12" r="2.6"/></svg>',
+    folder:   '<svg viewBox="0 0 32 32"><path d="M5 9h6l2.2 2.8H25a2 2 0 0 1 2 2V24a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9z"/></svg>',
+    book:     '<svg viewBox="0 0 32 32"><path d="M16 9c-2.2-1.6-5.2-2.2-9-2.2V23c3.8 0 6.8.6 9 2.2 2.2-1.6 5.2-2.2 9-2.2V6.8c-3.8 0-6.8.6-9 2.2z"/><path d="M16 9v16.2"/></svg>',
+    payments: '<svg viewBox="0 0 32 32"><path d="M6 12h16l-5-5"/><path d="M26 20H10l5 5"/></svg>',
+  };
+
+  // --- 8 пунктов (общие для обоих наборов) ------------------------
+  const ITEMS = [
+    { icon:'register', l1:'Зарегистрируем',       l2:'бизнес' },
+    { icon:'salary',   l1:'Подключим зарплатный', l2:'проект' },
+    { icon:'taxes',    l1:'Рассчитаем',           l2:'налоги и взносы' },
+    { icon:'account',  l1:'Откроем',              l2:'счёт' },
+    { icon:'clients',  l1:'Поможем найти',        l2:'новых клиентов' },
+    { icon:'folder',   l1:'Настроим обмен',       l2:'документами онлайн' },
+    { icon:'book',     l1:'Расскажем про бизнес', l2:'на курсах и вебинарах' },
+    { icon:'payments', l1:'Настроим',             l2:'получение оплат' },
   ];
+
+  // 8 точек раскладки в пространстве (x, y — смещение от центра, z — глубина)
+  const POSITIONS = [
+    { x:-560, y:-360, z: 120 },
+    { x: 430, y:-380, z:-160 },
+    { x:-700, y: -30, z: -40 },
+    { x: 650, y:-110, z:  90 },
+    { x:-470, y: 300, z: 160 },
+    { x: 300, y: 330, z:-120 },
+    { x: 710, y: 230, z: 110 },
+    { x:-250, y:-150, z:-210 },
+  ];
+
+  // Оба набора используют те же позиции, но пункты в разном порядке
+  const SET_ORDERS = [
+    [0, 1, 2, 3, 4, 5, 6, 7],
+    [3, 0, 5, 2, 7, 1, 4, 6],
+  ];
+
+  // Сферический доворот по смещению от центра (минимум в центре, рост к краям)
+  const clamp = (v, m) => Math.max(-m, Math.min(m, v));
 
   const world = document.getElementById('world');
 
-  // Создаём оба набора в DOM
-  const setEls = SETS.map((cards, si) => {
+  const setEls = SET_ORDERS.map((order, si) => {
     const wrap = document.createElement('div');
     wrap.className = 'set ' + (si === 0 ? 'set--visible' : 'set--hidden');
-    cards.forEach(c => {
+
+    order.forEach((itemIdx, posIdx) => {
+      const item = ITEMS[itemIdx];
+      const p = POSITIONS[posIdx];
+
       const el = document.createElement('div');
       el.className = 'card';
-      el.style.width  = c.w + 'px';
-      el.style.height = c.h + 'px';
-      el.style.setProperty('--x', c.x + 'px');
-      el.style.setProperty('--y', c.y + 'px');
-      el.style.setProperty('--z', c.z + 'px');
-      el.style.setProperty('--rot', c.rot + 'deg');
-      el.dataset.depth = c.z;   // для расчёта параллакса
+      el.style.setProperty('--x', p.x + 'px');
+      el.style.setProperty('--y', p.y + 'px');
+      el.style.setProperty('--z', p.z + 'px');
+      el.style.setProperty('--sry', clamp(p.x * 0.032, 30) + 'deg');
+      el.style.setProperty('--srx', clamp(-p.y * 0.034, 22) + 'deg');
+      el.dataset.depth = p.z;
+
+      el.innerHTML =
+        '<div class="card__icon">' + ICONS[item.icon] + '</div>' +
+        '<div class="card__text">' + item.l1 + '<br>' + item.l2 + '</div>';
+
       wrap.appendChild(el);
     });
+
     world.appendChild(wrap);
     return wrap;
   });
 
-  // --- Параллакс + наклон сцены за курсором ------------------------
-  let tx = 0, ty = 0;          // целевые нормализованные координаты (-1..1)
-  let cx = 0, cy = 0;          // текущие (сглаженные)
-  const MAX_TILT = 9;          // макс. наклон сцены, градусы
+  // --- Параллакс + качание сцены за курсором -----------------------
+  let tx = 0, ty = 0, cx = 0, cy = 0;
+  const MAX_TILT = 7;
   const allCards = () => world.querySelectorAll('.card');
 
   window.addEventListener('pointermove', (e) => {
@@ -209,19 +264,16 @@
   });
 
   function loop() {
-    // плавное догоняние курсора
     cx += (tx - cx) * 0.08;
     cy += (ty - cy) * 0.08;
 
-    // наклон всей сцены (камера качается)
     world.style.setProperty('--rx', ( cx * MAX_TILT) + 'deg');
     world.style.setProperty('--ry', (-cy * MAX_TILT) + 'deg');
 
-    // индивидуальный параллакс по глубине: ближние двигаются сильнее
     allCards().forEach(card => {
-      const depth = parseFloat(card.dataset.depth);   // -220..220
-      const k = (depth + 250) / 470;                  // 0..1, ближе = больше
-      const amp = 18 + k * 55;
+      const depth = parseFloat(card.dataset.depth);   // -210..160
+      const k = (depth + 250) / 470;                  // ближе = больше
+      const amp = 16 + k * 55;
       card.style.setProperty('--px', (-cx * amp) + 'px');
       card.style.setProperty('--py', (-cy * amp) + 'px');
     });
@@ -235,10 +287,10 @@
   const thumb  = document.getElementById('thumb');
   const btns   = [...toggle.querySelectorAll('.toggle__btn')];
 
-  function moveThumb(btn) {
+  const moveThumb = (btn) => {
     thumb.style.left  = btn.offsetLeft + 'px';
     thumb.style.width = btn.offsetWidth + 'px';
-  }
+  };
 
   function select(idx) {
     btns.forEach((b, i) => b.setAttribute('aria-selected', i === idx));
@@ -250,8 +302,6 @@
   }
 
   btns.forEach((b, i) => b.addEventListener('click', () => select(i)));
-
-  // стартовая позиция бегунка (после раскладки)
   requestAnimationFrame(() => moveThumb(btns[0]));
   window.addEventListener('resize', () => {
     const active = btns.findIndex(b => b.getAttribute('aria-selected') === 'true');
