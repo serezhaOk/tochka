@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Точка — объявления</title>
+<meta name="description" content="Точка — доска бесплатных объявлений: транспорт, недвижимость, электроника, работа и услуги.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar__row">
+    <a href="#/" class="logo" aria-label="Точка — на главную">
+      <span class="logo__dot"></span>точка
+    </a>
+    <button class="btn btn--ghost cat-toggle" id="catToggle" aria-expanded="false">
+      <span class="burger"></span>Все категории
+    </button>
+    <form class="search" id="searchForm" role="search">
+      <input id="searchInput" type="search" placeholder="Поиск по объявлениям" autocomplete="off">
+      <select id="citySelect" aria-label="Город"></select>
+      <button class="btn btn--primary" type="submit">Найти</button>
+    </form>
+    <nav class="topbar__nav">
+      <a href="#/favorites" class="icon-link" title="Избранное">
+        <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.4 5 6.8 5c2 0 3.6 1.1 5.2 3 1.6-1.9 3.2-3 5.2-3C20.6 5 23 8.3 21.5 11.8 19.5 16.4 12 21 12 21z"/></svg>
+        <span class="badge" id="favCount" hidden>0</span>
+      </a>
+      <a href="#/messages" class="icon-link" title="Сообщения">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>
+      </a>
+      <a href="#/my" class="icon-link" title="Мои объявления">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      </a>
+      <a href="#/new" class="btn btn--accent">Разместить объявление</a>
+    </nav>
+  </div>
+  <div class="catmenu" id="catMenu" hidden>
+    <div class="wrap catmenu__grid" id="catMenuGrid"></div>
+  </div>
+</header>
+
+<main id="app" class="wrap" tabindex="-1"></main>
+
+<footer class="footer">
+  <div class="wrap footer__row">
+    <span>© 2026 Точка — учебный проект доски объявлений</span>
+    <span class="muted">Все объявления на сайте вымышлены</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
