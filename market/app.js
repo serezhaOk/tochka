@@ -458,13 +458,18 @@
         try { await navigator.clipboard.writeText(location.href); toast('Ссылка скопирована'); }
         catch { toast('Не удалось скопировать ссылку'); }
       });
-      $('#deleteBtn')?.addEventListener('click', () => {
-        if (!confirm('Снять объявление с публикации?')) return;
+      $('#deleteBtn')?.addEventListener('click', (e) => {
+        e.currentTarget.outerHTML = `<p>Снять объявление с публикации?</p>
+          <div class="confirm-row"><button class="btn btn--danger" id="deleteYes">Снять</button><button class="btn btn--ghost" id="deleteNo">Отмена</button></div>`;
+        $('#deleteNo').addEventListener('click', render);
+        $('#deleteYes').addEventListener('click', removeListing);
+      });
+      const removeListing = () => {
         state.mine = state.mine.filter((m) => m.id !== l.id);
         store.set('mine', state.mine);
         toast('Объявление снято');
         location.hash = '#/my';
-      });
+      };
       document.querySelectorAll('[data-thumb]').forEach((t) => t.addEventListener('click', () => {
         document.querySelectorAll('[data-thumb]').forEach((x) => x.classList.remove('is-active'));
         t.classList.add('is-active');
